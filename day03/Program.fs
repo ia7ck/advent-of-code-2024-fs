@@ -53,18 +53,26 @@ let parse1 (input: string) =
 
     p input []
 
+type P<'a> = string -> ('a * string) option
+
 let parse2 (input: string) =
+    let pMap (p1: P<'a>) (mapping: 'a -> 'b) (text: string) =
+        p1 text |> Option.map (fun (x, rest) -> (mapping x, rest))
+
+    let pChoice (p1: P<'a>) (p2: P<'a>) (text: string) =
+        p1 text |> Option.orElseWith (fun () -> p2 text)
+
+    let parseMul = pMap parseMul (fun (x, y) -> Multiply(x, y))
+    let parseDo = pMap (parsePrefix "do()") (fun _ -> Enable)
+    let parseDon't = pMap (parsePrefix "don't()") (fun _ -> Disable)
+
     let rec p (text: string) acc =
         if text.Length = 0 then
             List.rev acc
         else
-            parseMul text
-            |> Option.map (fun ((x, y), rest) -> p rest (Multiply(x, y) :: acc))
-            |> Option.orElseWith (fun () ->
-                parsePrefix "do()" text |> Option.map (fun (_, rest) -> p rest (Enable :: acc)))
-            |> Option.orElseWith (fun () ->
-                parsePrefix "don't()" text
-                |> Option.map (fun (_, rest) -> p rest (Disable :: acc)))
+            text
+            |> pChoice parseMul (pChoice parseDo parseDon't)
+            |> Option.map (fun (ins, rest) -> p rest (ins :: acc))
             |> Option.defaultWith (fun () -> p text[1..] acc)
 
     p input []
