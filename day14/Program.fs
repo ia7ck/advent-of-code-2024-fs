@@ -66,8 +66,8 @@ let part2 ((robots, w, h): (Robot seq * int * int)) =
 
 let parse (input: string) =
     input.Split("\n")
-    |> Array.map (fun line -> line.Split(" "))
     |> Array.map (fun line ->
+        let line = line.Split(" ")
         let p, v = line[0], line[1]
         let p = p.Replace("p=", "").Split(",")
         let v = v.Replace("v=", "").Split(",")
