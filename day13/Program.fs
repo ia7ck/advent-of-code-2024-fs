@@ -59,8 +59,8 @@ let part2 (machines: Machine seq) =
 
 let parse (input: string) =
     input.Split("\n\n")
-    |> Array.map (fun section -> section.Split("\n"))
     |> Array.map (fun section ->
+        let section = section.Split("\n")
         let buttonA, buttonB, prize = section[0], section[1], section[2]
 
         let buttonA =

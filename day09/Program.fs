@@ -174,7 +174,7 @@ let main _ =
 
     disk |> part1 |> printfn "Part 1: %d"
 
-    let timer = new Stopwatch()
+    let timer = Stopwatch()
     timer.Start()
     disk |> part2 |> printfn "Part 2: %d"
     timer.Stop()

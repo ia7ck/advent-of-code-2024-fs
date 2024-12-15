@@ -53,13 +53,13 @@ let parse1 (input: string) =
 
     p input []
 
-type P<'a> = string -> ('a * string) option
+type P<'T> = string -> ('T * string) option
 
 let parse2 (input: string) =
-    let pMap (p1: P<'a>) (mapping: 'a -> 'b) (text: string) =
+    let pMap (p1: P<'T>) (mapping: 'T -> 'U) (text: string) =
         p1 text |> Option.map (fun (x, rest) -> (mapping x, rest))
 
-    let pChoice (p1: P<'a>) (p2: P<'a>) (text: string) =
+    let pChoice (p1: P<'T>) (p2: P<'T>) (text: string) =
         p1 text |> Option.orElseWith (fun () -> p2 text)
 
     let parseMul = pMap parseMul (fun (x, y) -> Multiply(x, y))

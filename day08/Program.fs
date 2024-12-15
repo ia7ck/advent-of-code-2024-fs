@@ -32,8 +32,7 @@ let solve (map: char[][]) mapping =
             List.allPairs positions positions
             |> List.collect (fun ((i, j), (i', j')) -> mapping n (i, j) (i', j'))
 
-        newPositions)
-    |> List.map set
+        set newPositions)
     |> Set.unionMany
     |> Set.count
 

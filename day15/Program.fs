@@ -13,9 +13,9 @@ type Dir =
     | D
     | R
 
-let reverse (a: 'a[][]) = Array.map (Array.rev) a
+let reverse (a: 'T[][]) = Array.map (Array.rev) a
 
-let transpose (a: 'a[][]) =
+let transpose (a: 'T[][]) =
     let h, w = a.Length, a[0].Length
     Array.init w (fun i -> Array.init h (fun j -> a[j][i]))
 
@@ -85,7 +85,7 @@ let parseMap (input: string) =
             | 'O' -> Box
             | '#' -> Wall
             | '.' -> Empty
-            | _ -> failwith "!?"))
+            | c -> failwith $"{c} !?"))
 
 let parse (input: string) =
     let input = input.Split("\n\n")
@@ -95,15 +95,14 @@ let parse (input: string) =
 
     let moves =
         moves.Split("\n")
-        |> Array.map (fun moves ->
+        |> Array.collect (fun moves ->
             moves.ToCharArray()
             |> Array.map (function
                 | '^' -> U
                 | '<' -> L
                 | 'v' -> D
                 | '>' -> R
-                | _ -> failwith "!?"))
-        |> Array.concat
+                | c -> failwith $"{c} !?"))
 
 
     (map, moves)
