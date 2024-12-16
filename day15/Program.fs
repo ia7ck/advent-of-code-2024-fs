@@ -40,7 +40,7 @@ let rec pushLeft (i, j) (map: Cell[][]) =
             assert (map[i][j - 1] = Empty)
             // delegate
             pushLeft (i, j) map |> Option.get)
-    | Robot -> failwith "!?"
+    | c -> failwithf "%A !?" c
 
 let rec moveLeft (map: Cell[][]) =
     let ri, rj = findRobot map
