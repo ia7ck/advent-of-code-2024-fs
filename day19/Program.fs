@@ -62,7 +62,7 @@ bbrgwb"
     let testPart1 () = parse input |> part1 |> should equal 6
 
     [<Fact>]
-    let testPart2 () = parse input |> part2 |> should equal 16
+    let testPart2 () = parse input |> part2 |> should equal 16L
 
 [<EntryPoint>]
 let main _ =
