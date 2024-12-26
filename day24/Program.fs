@@ -1,3 +1,5 @@
+open System.Text.RegularExpressions
+
 open Xunit
 open FsUnit.Xunit
 
@@ -44,7 +46,134 @@ let part1 ((wires, gates): ((string * int) seq) * Gate seq) =
 
     System.Convert.ToInt64(z, 2)
 
-let part2 ((wires, gates): ((string * int) seq) * Gate seq) = 0
+let part2 ((_wires, gates): ((string * int) seq) * Gate seq) =
+    let hasLoop gateByOut =
+        let rec dfs out path =
+            if List.contains out path then
+                true
+            else
+                match Map.tryFind out gateByOut with
+                | None -> false
+                | Some g ->
+                    let left, right = g.Input
+                    dfs left (out :: path) || dfs right (out :: path)
+
+        gateByOut |> Map.keys |> Seq.exists (fun out -> dfs out [])
+
+    let rec collect out gateByOut =
+        match Map.tryFind out gateByOut with
+        | None -> []
+        | Some g ->
+            let left, right = g.Input
+            out :: collect left gateByOut @ collect right gateByOut
+
+    let rec make out gateByOut =
+        match Map.tryFind out gateByOut with
+        | None -> out
+        | Some g ->
+            let left, right = make (fst g.Input) gateByOut, make (snd g.Input) gateByOut
+            let left, right = min left right, max left right
+
+            match g.Op with
+            | And -> $"({left})and({right})"
+            | Or -> $"({left})or({right})"
+            | Xor -> $"({left})xor({right})"
+
+    let valid out gateByOut =
+        let circuit = make out gateByOut
+
+        let validXY =
+            // x00, y00, x01, y01, x01, y01, x02, y02, x02, y02, ...
+            let xy =
+                Regex.Matches(circuit, @"[x|y][0-9]+")
+                |> Seq.map (fun m -> m.Value)
+                |> Seq.chunkBySize 2
+
+            match List.ofSeq xy with
+            | [] -> true
+            | [| "x00"; "y00" |] :: t ->
+                let t = List.chunkBySize 2 t
+                let n = List.length t
+
+                [ 1..n ]
+                |> List.forall (fun i ->
+                    let xy = [| $"x%02d{i}"; $"y%02d{i}" |]
+
+                    if i < n then
+                        t[i - 1] = List.replicate 2 xy
+                    else
+                        t[i - 1] = [ xy ])
+            | _ -> false
+
+        let validOp =
+            // ((((((x00)and(y00))and((x01)xor(y01)))or((x01)and(y01)))and((x02)xor(y02)))or((x02)and(y02)))xor((x03)xor(y03))
+            // and, and, xor, or, and, and, xor, or, and, xor, xor
+            //      ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+            let ops = Regex.Matches(circuit, @"(and|or|xor)") |> Seq.map (fun m -> m.Value)
+
+            match List.ofSeq ops with
+            | [] -> true
+            | [ "xor" ] -> true // i = 0
+            | "and" :: t ->
+                let t = List.chunkBySize 4 t
+                let n = List.length t
+
+                [ 0 .. (n - 1) ]
+                |> List.forall (fun i ->
+                    if i + 1 < n then
+                        t[i] = [ "and"; "xor"; "or"; "and" ]
+                    else
+                        t[i] = [ "xor"; "xor" ])
+            | _ -> false
+
+        validXY && validOp
+
+    let rec search i gateByOut =
+        if i >= 45 then
+            Some gateByOut
+        else
+            let out = $"z%02d{i}"
+
+            if valid out gateByOut then
+                search (i + 1) gateByOut
+            else
+                let swaps = collect out gateByOut
+
+                swaps
+                |> List.tryPick (fun out ->
+                    Map.toList gateByOut
+                    |> List.tryPick (fun (out', g') ->
+                        let g = gateByOut[out]
+                        let newGateByOut = gateByOut |> Map.add out g' |> Map.add out' g
+
+                        if hasLoop newGateByOut then
+                            None
+                        else
+                            let nextInvalid =
+                                [ 0..45 ] |> List.find (fun j -> valid $"z%02d{j}" newGateByOut |> not)
+
+                            if i < nextInvalid then
+                                search nextInvalid newGateByOut
+                            else
+                                None))
+
+    let gateByOut =
+        gates
+        |> Seq.groupBy (fun g -> g.Output)
+        |> Seq.map (fun (out, gates) -> out, Seq.exactlyOne gates)
+        |> Map
+
+    let correctGateByOut = search 0 gateByOut |> Option.get
+
+    let diff =
+        gateByOut
+        |> Map.keys
+        |> Seq.filter (fun out ->
+            let g = gateByOut[out]
+            let g' = correctGateByOut[out]
+            g <> g')
+
+    diff |> Seq.sort |> String.concat ","
 
 let parse (input: string) =
     let sections = input.Split("\n\n")
@@ -130,15 +259,12 @@ tnw OR pbm -> gnj"
     let testPart1 () =
         parse input |> part1 |> should equal 2024L
 
-    [<Fact>]
-    let testPart2 () = parse input |> part2 |> should equal 0
-
 [<EntryPoint>]
 let main _ =
     let input = stdin.ReadToEnd().TrimEnd()
     let (wires, gates) = parse input
 
     (wires, gates) |> part1 |> printfn "Part 1: %d"
-    (wires, gates) |> part2 |> printfn "Part 2: %d"
+    (wires, gates) |> part2 |> printfn "Part 2: %s"
 
     0
