@@ -93,6 +93,20 @@ let dirRoute dir1 dir2 =
     | dir1, dir2 when List.contains (dir1, dir2) (List.allPairs left top) -> [ yoko ]
     | _ -> List.distinct [ tate; yoko ]
 
+let rec minCostPath level b1 b2 =
+    if level = 0 then
+        [ b2 ]
+    else
+        let numKeypad = '0' <= b1 && b1 <= '9' || '0' <= b2 && b2 <= '9'
+        let route = if numKeypad then numRoute b1 b2 else dirRoute b1 b2
+
+        route
+        |> List.map (fun route ->
+            'A' :: route
+            |> List.pairwise
+            |> List.collect (fun (x, y) -> minCostPath (level - 1) x y))
+        |> List.minBy List.length
+
 let memo = System.Collections.Generic.Dictionary()
 
 // いま b1 にいて b2 を押すために必要な最小手数
@@ -120,20 +134,30 @@ let rec minCost level b1 b2 =
         memo.Add(key, value)
         value
 
-let solve (codes: string seq) nRobot =
+let part1 (codes: string seq) =
     codes
     |> Seq.sumBy (fun code ->
         let cost =
             'A' :: List.ofSeq code
             |> List.pairwise
-            |> List.sumBy (fun (x, y) -> minCost (nRobot + 1) x y)
+            |> List.collect (fun (x, y) -> minCostPath (2 + 1) x y)
+            |> List.length
+            |> int64
 
         let num = code.TrimEnd('A') |> int64
         cost * num)
 
-let part1 (codes: string seq) = solve codes 2
+let part2 (codes: string seq) =
+    codes
+    |> Seq.sumBy (fun code ->
+        let cost =
+            'A' :: List.ofSeq code
+            |> List.pairwise
+            |> List.sumBy (fun (x, y) -> minCost (25 + 1) x y)
 
-let part2 (codes: string seq) = solve codes 25
+        let num = code.TrimEnd('A') |> int64
+        cost * num)
+
 
 let parse (input: string) = input.Split("\n")
 
